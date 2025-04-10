@@ -61,7 +61,7 @@ namespace Petzold.SpanTheCells
             using (StreamWriter writer = new StreamWriter(outputFile))
             {
                 angle = angle * Math.PI / 180.0;
-                Velocity_X.Add((k * velocity * Math.Cos(angle)) / m);
+                Velocity_X.Add(velocity * Math.Cos(angle));
                 Velocity_Y.Add(velocity * Math.Sin(angle));
                 X.Add(0);
                 Y.Add(0);
