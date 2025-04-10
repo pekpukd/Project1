@@ -1,23 +1,30 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Shapes;
 
 namespace Petzold.SpanTheCells
-{
+{   
 
     class BirdEventArg
     {
         public string Message { get; }
         public double TimeOfFligth { get; }
-        public BirdEventArg(string message, double timeOfFligth)
+        public double MaxY { get; }
+        public double Range { get;  }
+        public BirdEventArg(string message, double timeOfFligth, double maxY, double range)
         {
             Message = message;
             TimeOfFligth = timeOfFligth;
+            MaxY = maxY;
+            Range = range; 
         }
     }
-
+    
     class Bird
     {
         public static double g = 9.8;
@@ -29,7 +36,7 @@ namespace Petzold.SpanTheCells
         List<double> Velocity_X = new List<double>();
         List<double> Velocity_Y = new List<double>();
 
-        public delegate void FallHandler(Bird sender, BirdEventArg e);
+        public delegate void FallHandler(Bird sender, BirdEventArg e, StreamWriter writer);
         public event FallHandler Notify;
 
         public Bird(double x = 0, double y = 0, double velocity = 0, double angle = 0, double k = 0, double m = 0, double t = 0)
@@ -41,13 +48,13 @@ namespace Petzold.SpanTheCells
             this.k = k;
             this.t = t;
         }
-        public void ReadInputData(string inputFile)
+        public void ReadFromTextBox(List<TextBox> textBoxes)
         {
-            string[] lines = File.ReadAllLines(inputFile);
-            velocity = double.Parse(lines[0]);
-            angle = double.Parse(lines[1]);
-            m = double.Parse(lines[2]);
-            k = double.Parse(lines[3]);
+
+            velocity = double.Parse(textBoxes[0].Text);
+            angle = double.Parse (textBoxes[1].Text);
+            m = double.Parse(textBoxes[2].Text);
+            k = double.Parse(textBoxes[3].Text);
         }
         public void WriteFlightData(string outputFile)
         {
@@ -71,13 +78,22 @@ namespace Petzold.SpanTheCells
                     {
                         double timeOfFlight = t - step;
                         double range = X[i - 1];
-                        writer.WriteLine($"Время полета: {timeOfFlight:F2} сек");
-                        writer.WriteLine($"Дальность броска: {range:F2} м");
-                        Notify?.Invoke(this, new BirdEventArg($"Тело упало. Время падения {timeOfFlight:F2}", timeOfFlight));
+                        double maxY = Y.Max();
+                        Notify?.Invoke(this, new BirdEventArg($"Тело упало. Время падения {timeOfFlight:F2} с," +
+                            $" дальность броска {range:F2} м, максимальная высота {maxY:F2} м", timeOfFlight, maxY, range), writer);
+                        
                         break;
                     }
                 }
             }
+        }
+        public List<double> GetX()
+        {
+            return X;
+        }
+        public List<double> GetY()
+        {
+            return Y;
         }
     }
 
@@ -95,21 +111,19 @@ namespace Petzold.SpanTheCells
                 "_Масса:",
                 "_Коэфициент сопротивления воздуха:" };
         private TextBox txtOutput;
+        private Canvas canv;
 
         public SpanTheCells()
         {
-            Title = "Bird game";
+            Title = "Game";
 
             Grid grid = new Grid();
             grid.Margin = new Thickness(5);
             Content = grid;
+            grid.ShowGridLines = true;
 
             ColumnDefinition coldef = new ColumnDefinition();
             coldef.Width = new GridLength(200, GridUnitType.Auto);
-            grid.ColumnDefinitions.Add(coldef);
-
-            coldef = new ColumnDefinition();
-            coldef.Width = GridLength.Auto;
             grid.ColumnDefinitions.Add(coldef);
 
             coldef = new ColumnDefinition();
@@ -117,11 +131,14 @@ namespace Petzold.SpanTheCells
             grid.ColumnDefinitions.Add(coldef);
 
             coldef = new ColumnDefinition();
-            coldef.Width = new GridLength(100, GridUnitType.Star);
+            coldef.Width = new GridLength(400, GridUnitType.Star);
             grid.ColumnDefinitions.Add(coldef);
 
+            coldef = new ColumnDefinition();
+            coldef.Width = new GridLength(400, GridUnitType.Auto);
+            grid.ColumnDefinitions.Add(coldef);
 
-            for (int i = 0; i < 6; i++)
+            for (int i = 0; i < 5; i++)
             {
                 RowDefinition rowdef = new RowDefinition();
                 rowdef.Height = GridLength.Auto;
@@ -140,8 +157,8 @@ namespace Petzold.SpanTheCells
                 txtbox.Margin = new Thickness(5);
                 grid.Children.Add(txtbox);
                 Grid.SetRow(txtbox, i);
-                Grid.SetColumn(txtbox, 2);
-                Grid.SetColumnSpan(txtbox, 3);
+                Grid.SetColumn(txtbox, 1);
+                Grid.SetColumnSpan(txtbox, 4);
                 textBoxes.Add(txtbox);
             }
             Button btn = new Button();
@@ -150,41 +167,87 @@ namespace Petzold.SpanTheCells
             btn.IsDefault = true;
             btn.Click += buttonFly_Click;
             grid.Children.Add(btn);
-            Grid.SetRow(btn, 5);
-            Grid.SetColumn(btn, 2);
+            Grid.SetRow(btn, 4);
+            Grid.SetColumn(btn, 1);
             grid.Children[1].Focus();
 
             txtOutput = new TextBox
             {
                 Margin = new Thickness(5),
                 IsReadOnly = true,
-                VerticalScrollBarVisibility = ScrollBarVisibility.Visible,
-                HorizontalScrollBarVisibility = ScrollBarVisibility.Visible,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,  
                 TextWrapping = TextWrapping.Wrap,
+                AcceptsReturn = true, 
+                MaxHeight = 400,
             };
 
             grid.Children.Add(txtOutput);
-            Grid.SetRow(txtOutput, 0);
-            Grid.SetColumn(txtOutput, 3);
+            Grid.SetColumn(txtOutput, 2);
             Grid.SetRowSpan(txtOutput, 5);
+
+            canv = new Canvas
+            {
+                Width = 300,
+                Height = 300,
+                Background = Brushes.LightGray,
+                Margin = new Thickness(5)
+            };
+
+            grid.Children.Add(canv);
+            Grid.SetRow(canv, 0);
+            Grid.SetColumn(canv, 3);
+            Grid.SetRowSpan(canv, 5);
+
         }
 
         private void buttonFly_Click(object sender, EventArgs a)
         {
             Bird bird = new Bird();
-            string inputfile = "input.txt";
+            bird.Notify += DisplayMessage;
+
             string outputfile = "output.txt";
-            using (StreamWriter writer = new StreamWriter(inputfile))
-            {
-                foreach (var txtBox in textBoxes)
-                {
-                    writer.WriteLine(txtBox.Text);
-                }
-            }
-            bird.ReadInputData(inputfile);
+            bird.ReadFromTextBox(textBoxes);
             bird.WriteFlightData(outputfile);
             string outputContent = File.ReadAllText(outputfile);
             txtOutput.Text = outputContent;
+
+            List<double> X = bird.GetX();
+            List<double> Y = bird.GetY();
+            
+            DrawLines(canv, X, Y);
+
+        }
+
+        void DisplayMessage(Bird sender, BirdEventArg e, StreamWriter writer)
+        {
+            writer.WriteLine(e.Message);
+        }
+
+        void DrawLines(Canvas canv, List<double> X, List<double> Y)
+        {
+            canv.Children.Clear();
+
+            double maxX = X.Max();
+            double maxY = Y.Max();
+
+            double k_x = (canv.ActualWidth) / (maxX);
+            double k_y = (canv.ActualHeight) / (maxY);
+            double k = Math.Min(k_x, k_y);
+
+
+            for (int i = 0; i < X.Count - 1 & Y[i+1]>=0; i++)
+            {
+                Line line = new Line
+                {
+                    X1 = X[i] * k,
+                    Y1 = canv.ActualHeight - Y[i] * k,
+                    X2 = X[i + 1] * k,
+                    Y2 = canv.ActualHeight - Y[i + 1] * k,
+                    Stroke = Brushes.Green,
+                    StrokeThickness = 4
+                };
+                canv.Children.Add(line);
+            }
         }
     }
 }
