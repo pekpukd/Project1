@@ -36,7 +36,10 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Class1.cs" />
+    <Compile Include="SpanTheCalls.cs" />
+    <Compile Include="Bird.cs" />
+    <Compile Include="BirdEventArgs.cs" />
+    <Compile Include="SpanTheCallsFunctions.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="PresentationCore" />
