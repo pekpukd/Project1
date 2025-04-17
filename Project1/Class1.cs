@@ -9,7 +9,7 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
-
+using System.Threading.Tasks;
 namespace Petzold.SpanTheCells
 {   
 
@@ -31,7 +31,7 @@ namespace Petzold.SpanTheCells
     class Bird
     {
         public static double g = 9.8;
-        public static double step = 0.1;
+        public static double step = 0.01;
 
         public double t, x, y, velocity, angle, k, m;
         List<double> X = new List<double>();
@@ -52,13 +52,14 @@ namespace Petzold.SpanTheCells
             this.t = t;
         }
 
-        public void ReadInputData(string inputFile)
+        public string[] ReadInputData(string inputFile)
         {
             string[] lines = File.ReadAllLines(inputFile);
             velocity = double.Parse(lines[0]);
             angle = double.Parse(lines[1]);
             m = double.Parse(lines[2]);
             k = double.Parse(lines[3]);
+            return lines;
         }
 
         public void ReadFromTextBox(List<TextBox> textBoxes)
@@ -245,14 +246,13 @@ namespace Petzold.SpanTheCells
             itemExit.Click += ExitOnClick;
             itemFile.Items.Add(itemExit);
 
-            // Создание меню Window.
             MenuItem itemWindow = new MenuItem();
             itemWindow.Header = "_Window";
             menu.Items.Add(itemWindow);
 
             MenuItem itemTaskbar = new MenuItem();
             itemTaskbar.Header = "_Show in Taskbar";
-            itemTaskbar.IsCheckable = true;   //может быть отмечен галочкой
+            itemTaskbar.IsCheckable = true;   
             itemTaskbar.IsChecked = ShowInTaskbar;
             itemTaskbar.Click += TaskbarOnClick;
             itemWindow.Items.Add(itemTaskbar);
@@ -290,10 +290,8 @@ namespace Petzold.SpanTheCells
             if(item.Header == "_Open")
             {
                 OnOpen(sender, args);
+                buttonFly_Click(sender, args);
             }
-            string strItem = item.Header.ToString().Replace("_", "");
-            MessageBox.Show("The " + strItem +
-                " option has not yet  been implemented", Title);
         }
         void ExitOnClick(object sender, RoutedEventArgs args)   //закрывает окно
         {
@@ -317,7 +315,6 @@ namespace Petzold.SpanTheCells
                 ResizeMode = item.IsChecked ? ResizeMode.CanResize :
                     ResizeMode.NoResize;
             }
-
         void TopmostOnCheck(object sender, RoutedEventArgs args)
         {
             MenuItem item = sender as MenuItem;
@@ -330,18 +327,17 @@ namespace Petzold.SpanTheCells
 
             if ((bool)dlg.ShowDialog(this))
             {
-                try
+                Bird bird = new Bird();
+                string inputFile = dlg.FileName;
+                string[] inputData = bird.ReadInputData(inputFile);
+                for (int i = 0; i < inputData.Length; i++)
                 {
-                    Bird bird = new Bird();
-                    bird.ReadInputData(dlg.FileName);
+                    textBoxes[i].Text = inputData[i];
                 }
-                catch (Exception exc)
-                {
-                    MessageBox.Show(exc.Message, Title);
-                }
+                
             }
+  
         }
-
         private void buttonFly_Click(object sender, EventArgs a)
         {
             Bird bird = new Bird();
@@ -363,7 +359,7 @@ namespace Petzold.SpanTheCells
         {
             writer.WriteLine(e.Message);
         }
-        void DrawLines(Canvas canv, List<double> X, List<double> Y)
+        async void DrawLines(Canvas canv, List<double> X, List<double> Y)
         {
             canv.Children.Clear();
 
@@ -386,6 +382,7 @@ namespace Petzold.SpanTheCells
                     StrokeThickness = 4
                 };
                 canv.Children.Add(line);
+                await Task.Delay(1);
             }
         }
     }
