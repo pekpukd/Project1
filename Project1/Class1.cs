@@ -1,9 +1,12 @@
-﻿using System;
+﻿using Microsoft.Win32;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 
@@ -48,6 +51,16 @@ namespace Petzold.SpanTheCells
             this.k = k;
             this.t = t;
         }
+
+        public void ReadInputData(string inputFile)
+        {
+            string[] lines = File.ReadAllLines(inputFile);
+            velocity = double.Parse(lines[0]);
+            angle = double.Parse(lines[1]);
+            m = double.Parse(lines[2]);
+            k = double.Parse(lines[3]);
+        }
+
         public void ReadFromTextBox(List<TextBox> textBoxes)
         {
 
@@ -119,8 +132,7 @@ namespace Petzold.SpanTheCells
 
             Grid grid = new Grid();
             grid.Margin = new Thickness(5);
-            Content = grid;
-            grid.ShowGridLines = true;
+            grid.ShowGridLines = false;
 
             ColumnDefinition coldef = new ColumnDefinition();
             coldef.Width = new GridLength(200, GridUnitType.Auto);
@@ -158,9 +170,9 @@ namespace Petzold.SpanTheCells
                 grid.Children.Add(txtbox);
                 Grid.SetRow(txtbox, i);
                 Grid.SetColumn(txtbox, 1);
-                Grid.SetColumnSpan(txtbox, 4);
                 textBoxes.Add(txtbox);
             }
+
             Button btn = new Button();
             btn.Content = "Запуск";
             btn.Margin = new Thickness(5);
@@ -198,6 +210,136 @@ namespace Petzold.SpanTheCells
             Grid.SetColumn(canv, 3);
             Grid.SetRowSpan(canv, 5);
 
+            DockPanel dock = new DockPanel();
+            Content = dock;
+
+            Menu menu = new Menu();
+            dock.Children.Add(menu);
+            DockPanel.SetDock(menu, Dock.Top);
+            dock.Children.Add(grid);
+            DockPanel.SetDock(grid, Dock.Bottom);
+
+            // Создание меню File.
+            MenuItem itemFile = new MenuItem();
+            itemFile.Header = "_File";
+            menu.Items.Add(itemFile);
+
+            MenuItem itemNew = new MenuItem();
+            itemNew.Header = "_New";
+            itemNew.Click += UnimplementedOnClick;
+            itemFile.Items.Add(itemNew);
+
+            MenuItem itemOpen = new MenuItem();
+            itemOpen.Header = "_Open";
+            itemOpen.Click += UnimplementedOnClick;
+            itemFile.Items.Add(itemOpen);
+
+            MenuItem itemSave = new MenuItem();
+            itemSave.Header = "_Save";
+            itemSave.Click += UnimplementedOnClick;
+            itemFile.Items.Add(itemSave);
+
+            itemFile.Items.Add(new Separator()); //рисует горизонтальную разделительную линию
+            MenuItem itemExit = new MenuItem();
+            itemExit.Header = "E_xit";
+            itemExit.Click += ExitOnClick;
+            itemFile.Items.Add(itemExit);
+
+            // Создание меню Window.
+            MenuItem itemWindow = new MenuItem();
+            itemWindow.Header = "_Window";
+            menu.Items.Add(itemWindow);
+
+            MenuItem itemTaskbar = new MenuItem();
+            itemTaskbar.Header = "_Show in Taskbar";
+            itemTaskbar.IsCheckable = true;   //может быть отмечен галочкой
+            itemTaskbar.IsChecked = ShowInTaskbar;
+            itemTaskbar.Click += TaskbarOnClick;
+            itemWindow.Items.Add(itemTaskbar);
+
+            MenuItem itemSize = new MenuItem();
+            itemSize.Header = "Size to _Content";
+            itemSize.IsCheckable = true;
+            itemSize.IsChecked = SizeToContent == SizeToContent.WidthAndHeight;
+            itemSize.Checked += SizeOnCheck;
+            itemSize.Unchecked += SizeOnCheck;
+            itemWindow.Items.Add(itemSize);
+
+            MenuItem itemResize = new MenuItem();
+            itemResize.Header = "_Resizable";
+            itemResize.IsCheckable = true;
+            itemResize.IsChecked = ResizeMode == ResizeMode.CanResize;
+            itemResize.Click += ResizeOnClick;
+            itemWindow.Items.Add(itemResize);
+
+            MenuItem itemTopmost = new MenuItem();
+            itemTopmost.Header = "_Topmost";
+            itemTopmost.IsCheckable = true;
+            itemTopmost.IsChecked = Topmost;
+            itemTopmost.Checked += TopmostOnCheck;
+            itemTopmost.Unchecked += TopmostOnCheck;
+            itemWindow.Items.Add(itemTopmost);
+
+
+        }
+
+        void UnimplementedOnClick(object sender, RoutedEventArgs args)    
+                                                                          
+        {
+            MenuItem item = sender as MenuItem;
+            if(item.Header == "_Open")
+            {
+                OnOpen(sender, args);
+            }
+            string strItem = item.Header.ToString().Replace("_", "");
+            MessageBox.Show("The " + strItem +
+                " option has not yet  been implemented", Title);
+        }
+        void ExitOnClick(object sender, RoutedEventArgs args)   //закрывает окно
+        {
+            Close();
+        }
+        void TaskbarOnClick(object sender, RoutedEventArgs args)
+        {
+            MenuItem item = sender as MenuItem;
+            ShowInTaskbar = item.IsChecked;
+        }
+        void SizeOnCheck(object sender, RoutedEventArgs args)
+        {
+            MenuItem item = sender as MenuItem;
+            SizeToContent = item.IsChecked ? SizeToContent.WidthAndHeight :
+                SizeToContent.Manual;
+        }
+
+        void ResizeOnClick(object sender, RoutedEventArgs args)
+            {
+                MenuItem item = sender as MenuItem;
+                ResizeMode = item.IsChecked ? ResizeMode.CanResize :
+                    ResizeMode.NoResize;
+            }
+
+        void TopmostOnCheck(object sender, RoutedEventArgs args)
+        {
+            MenuItem item = sender as MenuItem;
+            Topmost = item.IsChecked;
+        }
+        void OnOpen(object sender, RoutedEventArgs args)
+        {
+            OpenFileDialog dlg = new OpenFileDialog();
+            dlg.CheckFileExists = true;
+
+            if ((bool)dlg.ShowDialog(this))
+            {
+                try
+                {
+                    Bird bird = new Bird();
+                    bird.ReadInputData(dlg.FileName);
+                }
+                catch (Exception exc)
+                {
+                    MessageBox.Show(exc.Message, Title);
+                }
+            }
         }
 
         private void buttonFly_Click(object sender, EventArgs a)
@@ -217,12 +359,10 @@ namespace Petzold.SpanTheCells
             DrawLines(canv, X, Y);
 
         }
-
         void DisplayMessage(Bird sender, BirdEventArg e, StreamWriter writer)
         {
             writer.WriteLine(e.Message);
         }
-
         void DrawLines(Canvas canv, List<double> X, List<double> Y)
         {
             canv.Children.Clear();
@@ -233,7 +373,6 @@ namespace Petzold.SpanTheCells
             double k_x = (canv.ActualWidth) / (maxX);
             double k_y = (canv.ActualHeight) / (maxY);
             double k = Math.Min(k_x, k_y);
-
 
             for (int i = 0; i < X.Count - 1 & Y[i+1]>=0; i++)
             {
