@@ -122,22 +122,22 @@ namespace Project1
 
             MenuItem itemNew = new MenuItem();
             itemNew.Header = "_New";
-            itemNew.Click += UnimplementedOnClick;
+            itemNew.Click += OpenOnClick;
             itemFile.Items.Add(itemNew);
 
             MenuItem itemOpen = new MenuItem();
             itemOpen.Header = "_Open";
-            itemOpen.Click += UnimplementedOnClick;
+            itemOpen.Click += OpenOnClick;
             itemFile.Items.Add(itemOpen);
 
             MenuItem itemSave = new MenuItem();
             itemSave.Header = "_Save";
-            itemSave.Click += UnimplementedOnClick;
+            itemSave.Click += OpenOnClick;
             itemFile.Items.Add(itemSave);
 
             itemFile.Items.Add(new Separator()); //рисует горизонтальную разделительную линию
             MenuItem itemExit = new MenuItem();
-            itemExit.Header = "E_xit";
+            itemExit.Header = "_Exit";
             itemExit.Click += ExitOnClick;
             itemFile.Items.Add(itemExit);
 

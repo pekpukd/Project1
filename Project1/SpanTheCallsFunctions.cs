@@ -13,7 +13,7 @@ namespace Project1
 {
     public partial class SpanTheCells : Window
     {
-        void OnOpen(object sender, RoutedEventArgs args)
+        void GetData(object sender, RoutedEventArgs args)
         {
             OpenFileDialog dlg = new OpenFileDialog();
             dlg.CheckFileExists = true;
@@ -29,17 +29,43 @@ namespace Project1
                 }
             }
         }
-        void UnimplementedOnClick(object sender, RoutedEventArgs args)
+
+        void SaveData(object sender, RoutedEventArgs args)
+        {
+            SaveFileDialog saveFileDialog = new SaveFileDialog();
+            saveFileDialog.Filter = "Text file (*.txt)|*.txt";
+            saveFileDialog.FileName = "Output.txt";
+
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                File.WriteAllText(saveFileDialog.FileName, txtOutput.Text);
+            }
+        }
+        void OpenOnClick(object sender, RoutedEventArgs args)
 
         {
             MenuItem item = sender as MenuItem;
             if (item.Header == "_Open")
             {
-                OnOpen(sender, args);
+                GetData(sender, args);
                 buttonFly_Click(sender, args);
             }
+            if (item.Header == "_New")
+            {
+                canv.Children.Clear();
+                for (int i = 0; i < textBoxes.Count; i++)
+                {
+                    textBoxes[i].Text = "";
+                }
+                txtOutput.Clear();
+            }
+            if (item.Header == "_Save")
+            {
+                SaveData(sender, args);
+            }
         }
-        void ExitOnClick(object sender, RoutedEventArgs args)   //закрывает окно
+        
+        void ExitOnClick(object sender, RoutedEventArgs args) 
         {
             Close();
         }
@@ -92,7 +118,6 @@ namespace Project1
 
             double maxX = X.Max();
             double maxY = Y.Max();
-
             double k_x = (canv.ActualWidth) / (maxX);
             double k_y = (canv.ActualHeight) / (maxY);
             double k = Math.Min(k_x, k_y);
